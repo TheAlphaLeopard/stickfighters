@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Stickman Physics Lab</title>
+    <style>
+        @font-face {
+            font-family: 'drewatica';
+            src: url('drewatica17.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+        :root {
+            --bg-color: #020202;
+            --accent-color: #00ffcc;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            background-image: 
+                linear-gradient(rgba(0, 255, 204, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 204, 0.02) 1px, transparent 1px);
+            background-size: 40px 40px;
+            font-family: 'drewatica', 'Courier New', Courier, monospace;
+            color: #fff;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        #canvas-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        canvas {
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            background-color: #000;
+            width: 100vw;
+            height: 100vh;
+            object-fit: contain;
+            display: block;
+        }
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        #menu-container {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 95%;
+            max-width: 750px;
+            pointer-events: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(5, 5, 10, 0.7);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(0, 255, 204, 0.2);
+            border-radius: 6px;
+            z-index: 10;
+            padding: 8px 12px;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.8);
+        }
+        #commentary-box {
+            width: 100%;
+            display: none;
+            padding: 8px 12px;
+            background: rgba(0,0,0,0.8);
+            color: #fff;
+            font-family: 'drewatica', monospace;
+            box-sizing: border-box;
+            border-radius: 4px;
+            margin-top: 4px;
+            flex-direction: row;
+            align-items: center;
+            border: 1px solid rgba(0, 255, 204, 0.3);
+        }
+        .mr-sticky-avatar-container {
+            position: relative;
+            width: 60px;
+            height: 60px;
+            flex-shrink: 0;
+            margin-right: 15px;
+            border: 2px solid var(--accent-color);
+            overflow: hidden;
+            background: #000;
+        }
+        .mr-sticky-avatar-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: grayscale(0.5) contrast(1.2);
+        }
+        .mr-sticky-name {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            color: var(--accent-color);
+            font-size: 8px;
+            text-align: center;
+            padding: 2px 0;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+        #commentary-text {
+            font-size: 16px;
+            letter-spacing: 0.5px;
+        }
+        .controls-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding: 4px;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+        .menu-row {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            background: rgba(255,255,255,0.02);
+            padding: 4px 8px;
+            border-radius: 3px;
+        }
+        .menu-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid #444;
+            color: #aaa;
+            padding: 6px 10px;
+            font-family: 'drewatica', monospace;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .menu-btn:hover {
+            color: #fff;
+            border-color: #00ffcc;
+            background: rgba(0, 255, 204, 0.1);
+        }
+        .menu-btn.active {
+            color: var(--accent-color);
+            border-color: var(--accent-color);
+            background: rgba(0, 255, 204, 0.15);
+            box-shadow: 0 0 10px rgba(0, 255, 204, 0.2);
+        }
+        .start-btn {
+            background: var(--accent-color);
+            color: #000;
+            padding: 6px 16px;
+            font-size: 12px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            border-radius: 3px;
+            text-transform: uppercase;
+            box-shadow: 0 3px 0 #008a6e;
+            transition: transform 0.1s;
+        }
+        .start-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #008a6e;
+        }
+        .record-btn {
+            background: #222;
+            color: #666;
+            padding: 6px 10px;
+            font-size: 14px;
+            border: 1px solid #444;
+            cursor: pointer;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s;
+            line-height: 1;
+            font-weight: bold;
+        }
+        .record-btn.active {
+            border-color: #ff3b3b;
+            background: rgba(255, 59, 59, 0.2);
+            filter: drop-shadow(0 0 5px #ff3b3b);
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        .start-btn:hover {
+            background: #fff;
+        }
+        .label {
+            font-size: 9px;
+            color: #888;
+            margin-right: 4px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        select.menu-select {
+            background: #111;
+            color: var(--accent-color);
+            border: 1px solid #444;
+            font-family: 'drewatica', monospace;
+            font-size: 11px;
+            padding: 4px 6px;
+            outline: none;
+            border-radius: 2px;
+        }
+        /* Slider styling */
+        .fighter-slider {
+            -webkit-appearance: none;
+            width: 80px;
+            height: 4px;
+            background: #333;
+            outline: none;
+            border-radius: 2px;
+        }
+        .fighter-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            background: var(--accent-color);
+            cursor: pointer;
+            border-radius: 50%;
+            box-shadow: 0 0 5px var(--accent-color);
+        }
+        #fighter-val {
+            font-size: 12px;
+            color: var(--accent-color);
+            min-width: 15px;
+            display: inline-block;
+            text-align: center;
+        }
+        #tutorial-modal {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 100;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+            pointer-events: auto;
+        }
+        .modal-content {
+            max-width: 400px;
+            border: 2px solid var(--accent-color);
+            padding: 20px;
+            background: #050505;
+        }
+        .modal-title {
+            font-size: 24px;
+            color: var(--accent-color);
+            margin-bottom: 15px;
+        }
+        .modal-text {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #ccc;
+            margin-bottom: 20px;
+        }
+        .close-btn {
+            background: var(--accent-color);
+            color: #000;
+            border: none;
+            padding: 8px 16px;
+            font-family: 'drewatica';
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container">
+        <canvas id="gameCanvas"></canvas>
+        <div id="menu-container">
+            <div id="settings-ui" class="controls-row">
+                <div class="menu-row">
+                    <span class="label">Fighters:</span>
+                    <input type="range" id="fighter-slider" class="fighter-slider" min="1" max="15" value="6">
+                    <span id="fighter-val">6</span>
+                </div>
+                <div class="menu-row">
+                    <span class="label">Teams:</span>
+                    <input type="range" id="team-slider" class="fighter-slider" min="1" max="4" value="1">
+                    <span id="team-val">FFA</span>
+                </div>
+                <div class="menu-row">
+                    <span class="label">FPS:</span>
+                    <input type="number" id="fps-cap-input" class="menu-select" value="30" min="1" max="120" style="width: 45px; height: 20px;">
+                </div>
+                <div class="menu-row">
+                    <span class="label">Mode:</span>
+                    <select id="mode-select" class="menu-select">
+                        <option value="FREE_FOR_ALL">FREE FOR ALL</option>
+                        <option value="CLASSIC">CLASSIC</option>
+                        <option value="ALL_GUN">ALL GUN</option>
+                        <option value="SINGLE_CLASS">SINGLE CLASS</option>
+                        <option value="ONLY_MELEE">MELEE ONLY</option>
+                        <option value="HEAVYWEIGHTS">HEAVYWEIGHTS</option>
+                        <option value="ASSASSINS">ASSASSINS</option>
+                        <option value="BOSS_BATTLE">BOSS BATTLE</option>
+                        <option value="RIOT_CONTROL">RIOT CONTROL</option>
+                    </select>
+                </div>
+                <div id="class-select-container" class="menu-row" style="display: none;">
+                    <span class="label">Pick:</span>
+                    <select id="class-select" class="menu-select">
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+
+                <div style="display: flex; gap: 8px;">
+                    <button id="record-battle" class="record-btn" title="Auto-Record">
+                        <span style="font-size: 12px;">🔴</span> REC
+                    </button>
+                    <button id="start-battle" class="start-btn">FIGHT!</button>
+                </div>
+            </div>
+            <div id="commentary-box">
+                <div class="mr-sticky-avatar-container">
+                    <img src="/mrsticky.png" alt="Mr Sticky">
+                    <div class="mr-sticky-name">MR. STICKY</div>
+                </div>
+                <span id="commentary-text">Select your fighters and get ready!</span>
+            </div>
+        </div>
+
+    </div>
+
+
+    <script src="main.js"></script>
+</body>
+</html>
